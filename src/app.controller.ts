@@ -1,5 +1,7 @@
-import { Controller, Get, Post, Body } from '@nestjs/common';
+import { Controller, Get, Post, Body, UploadedFile, UseInterceptors } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { AppService } from './app.service';
+import { uptime } from 'process';
 
 @Controller()
 export class AppController {
@@ -13,7 +15,7 @@ export class AppController {
   @Post('login')
   login(@Body() body:{ usuario: string; password: string }){
     if (body.usuario === 'admin' && body.password === '1234') {
-      return { ok: true, rol: ' admin'};
+      return { ok: true, rol: 'admin'};
     }
     if (body.usuario === 'profesor' && body.password === '1234') {
       return { ok: true, rol: 'profesor'};
@@ -28,4 +30,18 @@ export class AppController {
       {profesor: 'Luis Ramos', seccion:'2 B', hora:'11:30', descripcion:'Imprimir examen, 30 hojas'},
     ]
   }
+
+  @Post('subir')
+  @UseInterceptors(FileInterceptor('archivo'))
+  subirArchivo(
+    @UploadedFile() archivo: Express.Multer.File,
+    @Body() body: { seccion: string; descripcion: string },
+  ){
+    console.log('Archivo recibido:', archivo?.originalname);
+    console.log('Seccion: ', body.seccion);
+    console.log('Descripcion: ', body.descripcion);
+
+    return {ok: true, mensaje: 'Archivo recibido correctamente'}
+  }
+
 }
