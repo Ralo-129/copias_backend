@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, UploadedFile, UseInterceptors } from '@nestjs/common';
+import { Controller, Get, Post, Body, UploadedFile, UseInterceptors, Param } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { AppService } from './app.service';
@@ -36,6 +36,10 @@ export class AppController {
       return { ok: false };
     }
 
+    if (!usuarioEncontrado.activo) {
+      return { ok: false, mensaje: 'Ceunta deshabilitada. Contacta al administrador.' };
+    }
+
     return {
       ok: true,
       rol : usuarioEncontrado.rol,
@@ -57,6 +61,7 @@ export class AppController {
       rol: body.rol,
       grado: body.grado,
       seccion: body.seccion,
+      activo: true,
     });
 
     return { ok: true, mensaje: 'Usuario creado exitosamente', data: nuevoUsuario };
@@ -72,6 +77,38 @@ export class AppController {
     return this.usuarioModel.find().select('-password');
   }
 
+  @Post('usuarios/:id/toggle-activo')
+  async toggleActivo(@Param('id') id: string) {
+    const usuario = await this.usuarioModel.findById(id);
+
+    if (!usuario) {
+      return { ok: false, mensaje: ('Usuario no encontrado') }
+    }
+
+    usuario.activo = !usuario.activo;
+    await usuario.save();
+
+    return { ok: true, activo: usuario.activo };
+  }
+
+  @Post('usuario/:id/editar')
+  async editarUsuario(
+    @Param('id') id: string,
+    @Body() body: { grado: string; seccion: string },
+  ) {
+    const usuario = await this.usuarioModel.findById(id);
+
+    if (!usuario) {
+      return { ok: false, mensaje: 'Usuario no encontrado' };
+    }
+
+    usuario.grado = body.grado;
+    usuario.seccion = body.seccion;
+    await usuario.save();
+
+    return { ok:true, mensaje: 'Usuario actualizado' };
+  }
+
   @Post('subir')
   @UseInterceptors(
     FileInterceptor('archivo', {
@@ -84,7 +121,7 @@ export class AppController {
       }),
     }),
   )
-
+  
   async subirArchivo(
     @UploadedFile() archivo: Express.Multer.File,
     @Body() body: { grado: string; seccion: string; descripcion: string; profesor: string },
