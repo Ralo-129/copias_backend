@@ -22,6 +22,9 @@ export class Usuario {
 
     @Prop()
     seccion?:string;
+
+    @Prop({default: true})
+    activo:boolean;
 }
 
 export const UsuarioSchema = SchemaFactory.createForClass(Usuario);
