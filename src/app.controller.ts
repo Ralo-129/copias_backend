@@ -4,13 +4,17 @@ import { diskStorage } from 'multer';
 import { AppService } from './app.service';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { Impresion, ImpresionSchema } from './impresiones/impresiones.schema';
+import * as bcrypt from 'bcrypt';
+import { Impresion, ImpresionDocument} from './impresiones/impresiones.schema';
+import { Usuario, UsuarioDocument } from './usuarios/usuarios.schema';
+
 
 @Controller()
 export class AppController {
   constructor(
     private readonly appService: AppService,
-    @InjectModel (Impresion.name) private impresionModel: Model<Impresion>
+    @InjectModel(Impresion.name) private impresionModel: Model<ImpresionDocument>,
+    @InjectModel(Usuario.name) private usuarioModel: Model<UsuarioDocument>,
   ) {}
 
   @Get()
@@ -19,19 +23,53 @@ export class AppController {
   }
 
   @Post('login')
-  login(@Body() body:{ usuario: string; password: string }){
-    if (body.usuario === 'admin' && body.password === '1234') {
-      return { ok: true, rol: 'admin', nombre: 'Rafael (Admin)'};
+  async login(@Body() body: { usuario: string; password: string }) {
+    const usuarioEncontrado = await this.usuarioModel.findOne({ usuario: body.usuario });
+
+    if (!usuarioEncontrado) {
+      return { ok: false };
     }
-    if (body.usuario === 'profesor' && body.password === '1234') {
-      return { ok: true, rol: 'profesor', nombre: 'Profesor Demo'};
+
+    const passwordValida = await bcrypt.compare(body.password, usuarioEncontrado.password);
+
+    if (!passwordValida) {
+      return { ok: false };
     }
-    return { ok: false };
+
+    return {
+      ok: true,
+      rol : usuarioEncontrado.rol,
+      nombre: usuarioEncontrado.nombre,
+      grado: usuarioEncontrado.grado,
+      seccion: usuarioEncontrado.seccion,
+    };
+  }
+  
+
+  @Post('registro')
+  async registro(@Body() body: { usuario: string; password: string; nombre: string; rol: string, grado?: string; seccion?: string }) {
+    const hash = await bcrypt.hash(body.password, 10);
+
+    const nuevoUsuario = await this.usuarioModel.create({
+      usuario: body.usuario,
+      password: hash,
+      nombre: body.nombre,
+      rol: body.rol,
+      grado: body.grado,
+      seccion: body.seccion,
+    });
+
+    return { ok: true, mensaje: 'Usuario creado exitosamente', data: nuevoUsuario };
   }
 
   @Get('impresiones')
    async getImpresiones(){
     return this.impresionModel.find().sort({ createdAt: -1 });
+  }
+
+  @Get('usuarios')
+  async getUsuarios(){
+    return this.usuarioModel.find().select('-password');
   }
 
   @Post('subir')
@@ -49,10 +87,11 @@ export class AppController {
 
   async subirArchivo(
     @UploadedFile() archivo: Express.Multer.File,
-    @Body() body: { seccion: string; descripcion: string; profesor: string },
+    @Body() body: { grado: string; seccion: string; descripcion: string; profesor: string },
   ){
     const nuevaImpresion = await this.impresionModel.create ({
       profesor: body.profesor,
+      grado: body.grado,
       seccion: body.seccion,
       descripcion: body.descripcion,
       archivo: archivo.filename,

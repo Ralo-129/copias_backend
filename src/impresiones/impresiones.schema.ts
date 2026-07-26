@@ -16,6 +16,9 @@ export class Impresion {
 
     @Prop({required: true})
     archivo: string;
+
+    @Prop({ required: true})
+    grado: string;
 }
 
 export const ImpresionSchema = SchemaFactory.createForClass(Impresion);
