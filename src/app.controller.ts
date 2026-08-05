@@ -137,4 +137,22 @@ export class AppController {
     return { ok: true, mensaje: 'Archivo recibido y guardado', data: nuevaImpresion };
   }
 
+  @Post('impresiones/:id/toggle-completado')
+  async toggleCompletado(@Param('id') id: string) {
+    const impresion = await this.impresionModel.findById(id);
+
+    if (!impresion) {
+      return { ok: false, mensaje: 'Impresion no encontrada' }
+    }
+
+    const actualizado = await this.impresionModel.findByIdAndUpdate(
+      id,
+      { completado: !impresion.completado },
+      { new: true }
+    )
+    
+    return { ok: true, completado: impresion.completado };
+
+  }
+
 }

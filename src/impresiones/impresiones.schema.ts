@@ -8,6 +8,9 @@ export class Impresion {
     @Prop({required: true})
     profesor: string;
 
+    @Prop({ required: true})
+    grado: string;
+
     @Prop({required: true})
     seccion: string;
 
@@ -17,8 +20,8 @@ export class Impresion {
     @Prop({required: true})
     archivo: string;
 
-    @Prop({ required: true})
-    grado: string;
+    @Prop({ default: false })
+    completado: boolean;
 }
 
 export const ImpresionSchema = SchemaFactory.createForClass(Impresion);
